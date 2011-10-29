@@ -1,0 +1,43 @@
+EasyPageComments
+
+This projects aims to make the concept of
+quickly adding a comments section to pages
+trivial, by offering a PHP script 
+(EasyPageCommentsphp) that takes care of
+the message administration (using PDO-SQLite
+for storage) as well as the content generation.
+
+This can either be injected into pages
+by letting the server add them, using:
+
+  print $EasyPageComments->createCommentsList()
+
+and:
+
+  print $EasyPageComments->createCommentForm()
+
+Or, optionally, by adding the comments on-the-fly
+using JavaScritp, fetching the comments list
+and comment posting form using AJAX calls.
+
+This is relatively simple to write yourself,
+but to make matters even easier a JS script
+(EasyPageComments.js) is also offered, so
+that the comments and post form can be injected
+client-side, using:
+
+  var commentsHTML = EasyPageComments.createCommentsList();
+
+and:
+
+  var postForm = EasyPageComments.createCommentForm();
+
+(c) 2011 Mike "Pomax" Kamermans
+
+I'm still figuring out the precise license for this.
+Basically you're free to use it however you want, but
+if you're using it on sites in a way that allows you
+to make more money, a donation would be fair.
+
+If you want to include it with a for-sale commercial
+product, contact me first.

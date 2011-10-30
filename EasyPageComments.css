@@ -2,22 +2,54 @@
   Comment list and entry styling
 */
 
+.EasyPageComments-list a {
+  text-decoration: none;
+}
+
 .EasyPageComments-list {
+  width: 80%;
+  margin: 0px auto;
 }
 
 .EasyPageComments-entry {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
+}
+
+.EasyPageComments-entry-nested {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
+  margin-left: 1em;
+}
+
+.EasyPageComments-owner-comment {
+  background-color: #EFEFEF;
 }
 
 .EasyPageComments-entry-name {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-entry-time {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-entry-comment {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-entry-reply {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 /*
@@ -25,18 +57,41 @@
 */
 
 .EasyPageComments-form {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
+  width: 80%;
+  margin: 0px auto;
 }
 
 .EasyPageComments-form-name {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
+}
+
+.EasyPageComments-form-email {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-form-comment {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-form-clear {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-form-submit{
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 /*
@@ -44,10 +99,19 @@
 */
 
 .EasyPageComments-security {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-security-question {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }
 
 .EasyPageComments-security-answer {
+  margin: 1px;
+  padding: 1px;
+  border: 1px solid rgba(0,0,0,40);
 }

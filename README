@@ -10,8 +10,7 @@ comments section to pages trivial, by offering a PHP script
 administration (using PDO-SQLite for storage) as well as
 the content generation. An explanation can be found on:
 
-  http://pomax.nihongoresources.com/pages/EasyPagecomments
-
+  http://pomax.nihongoresources.com/pages/EasyPageComments
 
 I'm still figuring out the precise license for this.
 Basically you're free to use it however you want, but if

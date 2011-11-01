@@ -33,7 +33,7 @@ class EasyPageComments
   var $subject = "[EasyPageComments] page comment posted";
 
   // where can the sqlite database be found
-  var $db_location = "sqlite/comments.db";
+  var $db_dir = "./sqlite";
 
 // ------------------------------------
 //    DO NOT MODIFY BEYOND THIS POINT
@@ -45,13 +45,14 @@ class EasyPageComments
   var $build_db = false;
 
   function __construct() {
-    $this->db_handle = "sqlite:".$this->db_location;
     $this->thispage =& $_SERVER["PHP_SELF"];
-    $this->loc =& $_SERVER["SCRIPT_URI"];
-    $this->build_db = (!file_exists($this->db_location)); }
+    $this->loc =& $_SERVER["SCRIPT_URI"]; }
 
-  function verify_db() {
-    if($this->build_db) {
+  function verify_db($db_name="comments") {
+    $db_location = $this->db_dir . "/" . $db_name . ".db";
+    $build_db = (!file_exists($db_location));
+    $this->db_handle = "sqlite:" . $db_location;
+    if($build_db) {
       $dbh = new PDO($this->db_handle);
       $create = "CREATE TABLE comments(id INTEGER PRIMARY KEY AUTOINCREMENT, page TEXT, name TEXT, email TEXT, timestamp INTEGER, body TEXT, replyto INTEGER)";
       $stmt = $dbh->prepare($create);
@@ -120,6 +121,7 @@ class EasyPageComments
       if($name!=""&& $this->valid_email($email) && $body !="")
       {
         $success = true;
+        $this->verify_db($this->thispage);
         $dbh = new PDO($this->db_handle);
 
          // insert the comment
@@ -238,6 +240,7 @@ class EasyPageComments
     $entrylist = array();
     if($pagename!==false) { $this->thispage = $pagename; }
 
+    $this->verify_db($pagename);
     $dbh = new PDO($this->db_handle);
     foreach($dbh->query("SELECT * FROM COMMENTS WHERE page LIKE '".$this->thispage."' ORDER BY replyto") as $data)
     {
@@ -333,9 +336,6 @@ class EasyPageComments
 
 // build Easy Page Comments object
 $EasyPageComments = new EasyPageComments();
-
-// verify the database is in the right place
-$EasyPageComments->verify_db();
 
 // immediately process POST/GET requests
 if($_SERVER["REQUEST_METHOD"]=="POST") { $EasyPageComments->processPost(); }

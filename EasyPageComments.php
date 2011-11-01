@@ -27,7 +27,7 @@ class EasyPageComments
   var $notify = false;
 
   // what's the email address to send those notifications to?
-  var $to = "pomax@nihongoresources.com";
+  var $to = "mymail@mydomain.com";
 
   // what's the subject you'd like?
   var $subject = "[EasyPageComments] page comment posted";
@@ -149,7 +149,7 @@ class EasyPageComments
             $message .= "click <a href=\"".$this->loc."#EasyPageComments\">here</a> to view this comment online\n";
 
             $headers = "From: EasyPageComment-Mailer@" . $_SERVER["HTTP_HOST"] . "\r\n" .
-                       "Reply-To: '$name' <$email>\r\n" .
+                       "Reply-To: $name <$email>\r\n" .
                        "X-Mailer: PHP/" . phpversion();
 
             mail($this->to, $this->subject, $message, $headers);
@@ -176,7 +176,7 @@ class EasyPageComments
           $message = "COMMENT: $body\n";
 
           $headers = "From: EasyPageComment-Mailer@" . $_SERVER["HTTP_HOST"] . "\r\n" .
-                     "Reply-To: '$name' <$email>\r\n" .
+                     "Reply-To: $name <$email>\r\n" .
                      "X-Mailer: PHP/" . phpversion();
 
           // notification is not optional here. You will receive error mails.

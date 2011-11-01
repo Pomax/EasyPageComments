@@ -123,7 +123,7 @@ class EasyPageComments
         $dbh = new PDO($this->db_handle);
 
          // insert the comment
-        $insert = 'INSERT INTO comments (page, name,email,timestamp,body,replyto) VALUES ("' . $this->thispage . '", "' . $name . '", "' . $email  . '", "' . $timestamp . '", "' . $body . '", "' . $replyto . '")';
+        $insert = 'INSERT INTO comments (page, name, email, timestamp, body, replyto) VALUES ("' . $this->thispage . '", "' . $name . '", "' . $email  . '", "' . $timestamp . '", "' . $body . '", "' . $replyto . '")';
         $result = $dbh->exec($insert);
         $dbh = null;
         $success = ($result==1);
@@ -195,7 +195,7 @@ class EasyPageComments
         $html .= "<p>Something wasn't quite right with your post...</p>\n";
         $html .= "<ol>\n";
         if($name=="") { $html .= "<li>You left your name blank.</li>\n"; }
-        if(!valid_email($email)) { $html .= "<li>You filled in an email address, but it wasn't a valid address.</li>\n"; }
+        if(!$this->valid_email($email)) { $html .= "<li>You filled in an email address, but it wasn't a valid address.</li>\n"; }
         if($body=="") { $html .= "<li>You forgot the actual comment or question.</li>\n"; }
         $html .= "</ol>\n";
         $html .= "</div> <!-- EPC-response-text -->\n";
@@ -228,7 +228,7 @@ class EasyPageComments
     if(isset($_GET["getList"])) {
       print $this->createCommentsList($_GET["getList"]); }
     elseif(isset($_GET["getForm"])) {
-      print $this->createCommentForm($_GET["getForm"]); }}
+      print $this->createCommentForm($_GET["getForm"], true); }}
 
 // ------
 
@@ -246,9 +246,9 @@ class EasyPageComments
       $html = "\t<div class=\"EPC-entry";
       if($data['name']==$this->admin_alias) { $html .= " EPC-owner-comment"; }
       $html .= "\" id=\"EasyPageComment$id-" . $data['replyto'] . "\">\n";
-      $html .= "\t\t<a name=\"EasyPageComment$id\"></a>\n";
+      $html .= "\t\t<a name=\"comment$id\"></a>\n";
       $html .= "\t\t<div class=\"EPC-entry-name\">" . $data['name'] . "</div>\n";
-      $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#EasyPageComment$id\">" . $data['timestamp'] . "</a></div>\n";
+      $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#comment$id\">" . $data['timestamp'] . "</a></div>\n";
       $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
       $html .= "\t\t<div class=\"EPC-entry-reply\"><a href=\"#EasyPageComment-form\" onclick=\"document.getElementById('EPC-form-reply').value='EasyPageComment$id'; document.querySelector('.EPC-form-name input').focus()\">reply</a></div>\n";
       $html .= "\t</div> <!-- EasyPageComments entry -->\n";
@@ -300,10 +300,10 @@ class EasyPageComments
   /**
    * generate the HTML form for posting a comment
    */
-  function createCommentForm($page=false) {
+  function createCommentForm($page=false, $asynchronous=false) {
     ?>
     <a name="EasyPageComment-form"></a>
-    <form class="EPC-form" action="." method="POST"><?php
+    <form id="EasyPageCommentForm" class="EPC-form" action="." method="POST"><?php
     if($page!==false) { ?>
       <input id="EPC-form-page" type="hidden" name="page" value="<?php echo $page; ?>">
 <?php } ?>
@@ -320,7 +320,11 @@ class EasyPageComments
       </div>
       <div class="EPC-form-buttons">
         <input class="EPC-form-clear" type="reset" name="clear" value="clear fields"></input>
-        <input class="EPC-form-submit" type="submit" name="submit" value="post comment"></input>
+        <input class="EPC-form-submit" type="<?php
+          echo ($asynchronous && $page!==false ? "button" : "submit");
+        ?>" name="submit" value="post comment"<?php
+          if($asynchronous && $page!==false) { echo ' onclick="EasyPageComments.post(\''.$page.'\')"'; }
+        ?>></input>
       </div>
     </form>
     <?php

@@ -43,11 +43,24 @@ class EasyPageComments
   var $thispage;
   var $loc;
   var $build_db = false;
+  var $from_javascript = false;
 
+  var $failed_post = false;
+  var $failures = array();
+  var $values = array();
+
+  /**
+   * The constructor tries to figure out for
+   * which page EasyPageComments is running.
+   */
   function __construct() {
     $this->thispage =& $_SERVER["PHP_SELF"];
     $this->loc =& $_SERVER["SCRIPT_URI"]; }
 
+  /**
+   * This function ensures the right database
+   * is being used for comment read/writing.
+   */
   function verify_db($db_name="comments") {
     $db_location = $this->db_dir . "/" . $db_name . ".db";
     $build_db = (!file_exists($db_location));
@@ -60,6 +73,9 @@ class EasyPageComments
 
   // ------
 
+  /**
+   * A simple safifying function.
+   */
 	function make_safe($string) {
 		$string = str_replace("<p>","",$string);
 		$string = str_replace("</p>","\n\n",$string);
@@ -71,18 +87,26 @@ class EasyPageComments
 		$string = str_replace(">","&gt;",$string);
 		return $string; }
 
-	// the only correct regular expression to use for email addresses
+	/**
+	 * We validate email address using the only
+	 * correct regular expression to email addresses.
+	 */
 	function valid_email($email) {
 		$regexp = "/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i";
 		return preg_match($regexp, $email) == 1; }
 
-  // test whether a container has all required keys
+  /**
+   * Test whether a container has all required keys.
+   * This is used for checking $_GET and $_POST
+   */
 	function isset_for($CONTAINER, $keys) {
 	  foreach($keys as $key) {
 	    if(!isset($CONTAINER[$key])) return false; }
 	  return true; }
 
-  // test whether the security question was correctly answered
+  /**
+   * Test whether the security question was correctly answered
+   */
   function correctAnswer($given) {
     foreach($this->security_answers as $answer) {
       if($answer==$given) return true; }
@@ -90,10 +114,12 @@ class EasyPageComments
 
 // ------
 
-
-  // POST functionality
+  /**
+   * Handling for POST request
+   */
   function processPOST()
   {
+    // if these values are not set, EasyPageComments.php was not called by us!
     if (!$this->isset_for($_POST, array("name", "email", "body", "security", "reply"))) {
       $html  = "<div class=\"EPC-response\">\n";
       $html .= "<div id=\"EasyPageCommentStatus\">failed</div>\n";
@@ -104,6 +130,10 @@ class EasyPageComments
       return;
     }
 
+    // if we're calling this from javascript, responses must always be printed.
+    $this->from_javascript = isset($_GET["caller"]) && $_GET["caller"]=="JavaScript";
+
+    // get the values we need
     $name = $this->make_safe($_POST["name"]);
     $email = trim($_POST["email"]);
     $timestamp = date("l, F j") . "<sup>" . date("S") . "</sup>" . date(" Y - g:i a (") . "GMT" . substr(date("P"),0,1) . substr(date("P"),2,1) . ")";
@@ -111,11 +141,17 @@ class EasyPageComments
     $answer = trim($_POST["security"]);
     $replyto = intval(str_replace("EasyPageComment","",$this->make_safe($_POST["reply"])));
 
+    // make sure to cache the values in case something fails (but don't cache the security answer)
+    $this->values = array("name"=>$name, "email"=>$email, "body"=>$body, "replyto"=>$replyto);
+
     // default page override?
     if($_POST["page"]) { $this->thispage = $this->make_safe($_POST["page"]); }
 
     $html = "<div class=\"EPC-response\">\n";
 
+    // processing is contingent on the security question
+    // being answered correctly. If it's wrong, we don't
+    // even bother looking at the rest of the data.
     if($this->correctAnswer($answer))
     {
       if($name!=""&& $this->valid_email($email) && $body !="")
@@ -134,14 +170,7 @@ class EasyPageComments
          * Posting succeeded!
          */
         if($success) {
-          $html .= "<div id=\"EasyPageCommentStatus\">succeeded</div>\n";
-          $html .= "<div class=\"EPC-response-title\">Thank you for your comment or question</div>\n";
-          $html .= "<div class=\"EPC-response-text\">\n";
-          // you can modify this as much as you like, really
-          $html .= "<p>Thank you for your comment or question, $name. You may be mailed $email directly if your";
-          $html .= " question or comment requires a personal or private response. Otherwise, any counter-comments";
-          $html .= " or answers will be posted on the page itself.</p>\n";
-          $html .= "</div> <!-- EPC-response-text -->\n";
+          $html .= '<input id="EPC-status" name="'.$this->thispage.'" value="SUCCESS">'."\n";
 
           // if notification is desired, send out a mail
           if($this->notify)
@@ -163,14 +192,6 @@ class EasyPageComments
          */
         else
         {
-          $html .= "<div id=\"EasyPageCommentStatus\">failed</div>\n";
-          $html .= "<div class=\"EPC-response-title\">Oops...</div>\n";
-          $html .= "<div class=\"EPC-response-text\">\n";
-          // you can modify this as much as you like, really
-          $html .= "<p>Something went wrong while trying to save your comment or question... I";
-          $html .= " should have received an email about this, so I'll try to get this fixed ASAP!</p>";
-          $html .= "</div> <!-- EPC-response-text -->\n";
-
           $message = "An error occurred while trying to save an EasyPageComments comment for ".$this->loc."\n";
           $message = "Message data:\n";
           $message = "NAME   : $name\n";
@@ -183,6 +204,8 @@ class EasyPageComments
 
           // notification is not optional here. You will receive error mails.
           mail($this->to, "EasyPageComments error", $message, $headers);
+
+          $html .= '<input id="EPC-status" name="'.$this->thispage.'" value="ERROR">'."\n";
         }
       }
 
@@ -190,17 +213,20 @@ class EasyPageComments
        * Posting could not be performed - data was missing, or of the wrong format
        */
       else {
-        $html .= "<div id=\"EasyPageCommentStatus\">failed</div>\n";
-        $html .= "<div class=\"EPC-response-title\">Oops...</div>\n";
-        $html .= "<div class=\"EPC-response-text\">\n";
-        // you can modify this as much as you like, but try to keep that list in there.
-        $html .= "<p>Something wasn't quite right with your post...</p>\n";
-        $html .= "<ol>\n";
-        if($name=="") { $html .= "<li>You left your name blank.</li>\n"; }
-        if(!$this->valid_email($email)) { $html .= "<li>You filled in an email address, but it wasn't a valid address.</li>\n"; }
-        if($body=="") { $html .= "<li>You forgot the actual comment or question.</li>\n"; }
-        $html .= "</ol>\n";
-        $html .= "</div> <!-- EPC-response-text -->\n";
+        $this->failed_post = true;
+        $html .= '<input id="EPC-status" name="'.$this->thispage.'" value="FAILED">';
+        if($name=="") {
+          $this->failures["name"] = "You left your name blank";
+          $html .= '<input name="name" value="You left your name blank">'."\n"; }
+        if($email=="") {
+          $this->failures["email"] = "You left your email address blank";
+          $html .= '<input name="email" value="You left your email address blank">'."\n"; }
+        elseif(!$this->valid_email($email)) {
+          $this->failures["email"] = "You filled in an email address, but it wasn't a valid address";
+          $html .= '<input name="email" value="You filled in an email address, but it wasn\'t a valid address">'."\n"; }
+        if($body=="") {
+          $this->failures["body"]  ="You did not write a comment";
+          $html .= '<input name="body" value="You did not write a comment">'."\n"; }
       }
     }
 
@@ -208,24 +234,21 @@ class EasyPageComments
      * Posting could not be performed - the security question was answered incorrectly
      */
     else {
-      $html .= "<div id=\"EasyPageCommentStatus\">failed</div>\n";
-      $html .= "<div class=\"EPC-response-title\">Oops...</div>\n";
-      $html .= "<div class=\"EPC-response-text\">\n";
-      // you can modify this as much as you like, really.
-      $html .= "<p>Apparently, you got the security question wrong. Hit back and fill in";
-      $html .= " the right answer if you wish to post your comment or question ";
-      $html .= "(hint: the question already implies the answer).</p>";
-      $html .= "</div> <!-- EPC-response-text -->\n";
+      $this->failed_post = true;
+      $this->failures["security"] = "You did not answer the security question correctly";
+      $html .= '<input id="EPC-status" name="'.$this->thispage.'" value="FAILED">' . "\n";
+      $html .= '<input name="security" value="You did not answer the security question correctly">'."\n";
     }
-    $html .= "</div> <!-- EPC-response -->\n";
 
-    // finally, print the aggregated HTML code
-    print $html;
+    // if we're calling from javascript, print response.
+    if($this->from_javascript) { print $html; }
   }
 
 // ------
 
-  // GET functionality
+  /**
+   * Handling for GET requests
+   */
   function processGET() {
     if(isset($_GET["getList"])) {
       print $this->createCommentsList($_GET["getList"]); }
@@ -234,7 +257,10 @@ class EasyPageComments
 
 // ------
 
-  // fetch all comments as HTML
+  /**
+   * This function builds the HTML for the
+   * comment list, and then prints it to output.
+   */
   function createCommentsList($pagename=false)
   {
     $entrylist = array();
@@ -286,7 +312,10 @@ class EasyPageComments
   }
 
   /**
-   * Recursively walk a "node set" for html stringification
+   * This is a helper function for the comment list
+   * creation function, and recursively walks through
+   * a "node set", to build the nested HTML in a
+   * sensible (depth-first) order.
    */
   function stringwalk($parent, $depth)
   {
@@ -301,29 +330,84 @@ class EasyPageComments
   }
 
   /**
-   * generate the HTML form for posting a comment
+   * This function builds the HTML for the
+   * comment form, and then prints it to output.
    */
   function createCommentForm($page=false, $asynchronous=false) {
-    ?>
-    <a name="EasyPageComment-form"></a>
-    <form id="EasyPageCommentForm" class="EPC-form" action="." method="POST"><?php
+    // set up an anchor so that if there is an error in the
+    // form posting, we jump straight to the post form.
+    if($this->failed_post) {?>
+    <a name="EasyPageComment-form-<?php echo $page; ?>"></a><?php
+    }
+    ?><form id="EPC-<?php echo $page; ?>" class="EPC-form" action=".#EasyPageComment-form-<?php echo $page; ?>" method="POST"><?php
+
+    // only write a comment form if we know for which comment thread it is!
     if($page!==false) { ?>
-      <input id="EPC-form-page" type="hidden" name="page" value="<?php echo $page; ?>">
+      <input class="EPC-form-page" type="hidden" name="page" value="<?php echo $page; ?>">
 <?php } ?>
-      <input id="EPC-form-reply" type="hidden" name="reply" value="0">
-      <div class="EPC-form-name"><label>Your name:</label><input type="text" name="name"></input></div>
-      <div class="EPC-form-email"><label>Your email:</label><input type="text" name="email"></input></div>
+      <input class="EPC-form-reply" type="hidden" name="reply" value="0">
+      <div class="EPC-error-message"><?php
+        if($this->failed_post) { echo "There are some problems with your comment that you need to fix before posting."; }
+      ?></div>
+      <div class="EPC-form-name">
+        <label>Your name:</label>
+        <input type="text" name="name"<?php
+          // if posting failed, showing the form on the same page-call should
+          // mark errors, and fill in elements with what the user had written.
+          if($this->failed_post) {
+            echo 'value="' . $this->values["name"]. '"';
+            if(isset($this->failures["name"])) {
+              echo ' class="EPC-error" title="'.$this->failures["name"].'"';
+            }
+          }?>></input></div>
+      <div class="EPC-form-email">
+        <label>Your email:</label>
+        <input type="text" name="email"<?php
+          // if posting failed, showing the form on the same page-call should
+          // mark errors, and fill in elements with what the user had written.
+          if($this->failed_post) {
+            echo 'value="' . $this->values["email"]. '"';
+            if(isset($this->failures["email"])) {
+              echo ' class="EPC-error" title="'.$this->failures["email"].'"';
+            }
+          }?>></input></div>
       <div class="EPC-form-comment">
         <label>Your comment or question:</label>
-        <textarea name="body"></textarea>
+        <textarea name="body"<?php
+          // if posting failed, showing the form on the same page-call should
+          // mark errors, and fill in elements with what the user had written.
+          if($this->failed_post && isset($this->failures["body"])) {
+            echo ' class="EPC-error" title="'.$this->failures["body"].'"';
+          }?>><?php
+          if($this->failed_post) {
+            echo $this->values["body"];
+          }?></textarea>
       </div>
       <div class="EPC-security">
         <div class="EPC-security-question"><?php echo $this->security_question; ?></div>
-        <input class="EPC-security-answer" type="text" name="security"></input>
+        <input type="text" name="security"<?php
+          // if posting failed, showing the form on the same page-call should
+          // mark errors, and fill in elements with what the user had written.
+          //
+          // this element already has a class attribute, so we need slighlty
+          // different handling for it.
+          if($this->failed_post) {
+            echo 'value="' . $this->values["security"]. '"';
+            if(isset($this->failures["security"])) {
+              echo ' class="EPC-security-answer EPC-error" title="'.$this->failures["security"].'"';
+            } else {
+              echo ' class="EPC-security-answer"';
+            }
+          } else {
+            echo ' class="EPC-security-answer"';
+          }?>></input>
       </div>
       <div class="EPC-form-buttons">
         <input class="EPC-form-clear" type="reset" name="clear" value="clear fields"></input>
         <input class="EPC-form-submit" type="<?php
+          // If we're running on javascript, the submit button should not
+          // actually submit the form, but call a javascript function. As
+          // such, turn it into an <input type='button'> instead.
           echo ($asynchronous && $page!==false ? "button" : "submit");
         ?>" name="submit" value="post comment"<?php
           if($asynchronous && $page!==false) { echo ' onclick="EasyPageComments.post(\''.$page.'\')"'; }
@@ -334,12 +418,20 @@ class EasyPageComments
   }
 }
 
-// build Easy Page Comments object
-$EasyPageComments = new EasyPageComments();
+/**
+  The preceding code sets up the EasyPageComments class,
+  the following code actually makes use of it by building
+  an EasyPageComments object, and making it do its thing
+  based on whether a page was requested via GET or POST.
+**/
 
-// immediately process POST/GET requests
+$EasyPageComments = new EasyPageComments();
 if($_SERVER["REQUEST_METHOD"]=="POST") { $EasyPageComments->processPost(); }
 elseif($_SERVER["REQUEST_METHOD"]=="GET") { $EasyPageComments->processGET(); }
 
-// return control to the inclusion-calling script
+/**
+  After this point, control is returned to whatever included
+  the EasyPageComments.php file.
+  If EasyPageComments.php was called directly, this script stops here.
+**/
 ?>

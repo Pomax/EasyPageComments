@@ -158,10 +158,15 @@
   padding: 1px;
 }
 
+
 /*
-  By default, hide post responses
+  What happens to elements that were filling in incorrectly?
 */
 
-.EPC-response { display: none; }
-.EPC-response-title { display: none; }
-#EasyPageCommentStatus { display: none; }
+.EPC-error-message {
+  color: red;
+}
+
+.EPC-error {
+  border: 2px solid red !important;
+}

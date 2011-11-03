@@ -6,6 +6,17 @@ var EasyPageComments = {
   EasyPageCommentLocation: "EasyPageComments.php",
 
   /**
+   * Using anchor links with JavaScript will fail
+   * to jump to the anchor because often the comments
+   * will not be generated until after DOMReady.
+   * the first time createCommentsList is called,
+   * and the URL bar has an anchor, we use this
+   * variable to determine whether to 'follow' the
+   * anchor indication
+   */
+  followAnchor: window.location.hash,
+
+  /**
    * Asynchronously fetch the comments list.
    * The reply is sent to a global function
    * 'showEasyPageComments(data)'.
@@ -15,7 +26,11 @@ var EasyPageComments = {
     xhr.onreadystatechange = function() {
       if(this.readyState == this.DONE) {
         if(this.status == 200 && this.responseText != null) {
-          showEasyPageComments(this.responseText); }}};
+          showEasyPageComments(this.responseText);
+          // see if we need to jump to an anchor
+          if(EasyPageComments.followAnchor && this.responseText.indexOf(EasyPageComments.followAnchor)>-1) {
+            window.location = EasyPageComments.followAnchor;
+            EasyPageComments.followAnchor = false; }}}};
     xhr.open("GET",this.EasyPageCommentLocation + "?getList="+pagename,true);
     xhr.send(null);
   },

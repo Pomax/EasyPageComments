@@ -275,9 +275,9 @@ class EasyPageComments
       $html = "\t<div class=\"EPC-entry";
       if($data['name']==$this->admin_alias) { $html .= " EPC-owner-comment"; }
       $html .= "\" id=\"EasyPageComment$id-" . $data['replyto'] . "\">\n";
-      $html .= "\t\t<a name=\"comment$id\"></a>\n";
+      $html .= "\t\t<a name=\"$pagename-comment-$id\"></a>\n";
       $html .= "\t\t<div class=\"EPC-entry-name\">" . $data['name'] . "</div>\n";
-      $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#comment$id\">" . $data['timestamp'] . "</a></div>\n";
+      $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#$pagename-comment-$id\">" . $data['timestamp'] . "</a></div>\n";
       $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
       $html .= "\t\t<div class=\"EPC-entry-reply\"><a href=\"#EPC-form-$pagename\" onclick=\"document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id'; document.querySelector('.EPC-form-name input').focus()\">reply</a></div>\n";
       $html .= "\t</div> <!-- EasyPageComments entry -->\n";

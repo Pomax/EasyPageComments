@@ -279,7 +279,7 @@ class EasyPageComments
       $html .= "\t\t<div class=\"EPC-entry-name\">" . $data['name'] . "</div>\n";
       $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#comment$id\">" . $data['timestamp'] . "</a></div>\n";
       $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
-      $html .= "\t\t<div class=\"EPC-entry-reply\"><a href=\"#EasyPageComment-form\" onclick=\"document.getElementById('EPC-form-reply').value='EasyPageComment$id'; document.querySelector('.EPC-form-name input').focus()\">reply</a></div>\n";
+      $html .= "\t\t<div class=\"EPC-entry-reply\"><a href=\"#EPC-form-$pagename\" onclick=\"document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id'; document.querySelector('.EPC-form-name input').focus()\">reply</a></div>\n";
       $html .= "\t</div> <!-- EasyPageComments entry -->\n";
 
       $entry = array("id"=>$id, "parent"=>$data["replyto"], "html"=>$html, "depth"=>1);
@@ -339,7 +339,9 @@ class EasyPageComments
     if($this->failed_post) {?>
     <a name="EasyPageComment-form-<?php echo $page; ?>"></a><?php
     }
-    ?><form id="EPC-<?php echo $page; ?>" class="EPC-form" action=".#EasyPageComment-form-<?php echo $page; ?>" method="POST"><?php
+    ?>
+    <a name="EPC-form-<?php echo $page; ?>"></a>
+    <form id="EPC-<?php echo $page; ?>" class="EPC-form" action=".#EasyPageComment-form-<?php echo $page; ?>" method="POST"><?php
 
     // only write a comment form if we know for which comment thread it is!
     if($page!==false) { ?>
@@ -403,7 +405,7 @@ class EasyPageComments
           }?>></input>
       </div>
       <div class="EPC-form-buttons">
-        <input class="EPC-form-clear" type="reset" name="clear" value="clear fields"></input>
+        <input class="EPC-form-clear" type="reset" name="clear" value="clear fields" onclick="document.querySelector('#EPC-<?php echo $page; ?> input[name=reply]').value='0'"></input>
         <input class="EPC-form-submit" type="<?php
           // If we're running on javascript, the submit button should not
           // actually submit the form, but call a javascript function. As

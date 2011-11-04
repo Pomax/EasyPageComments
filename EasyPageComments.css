@@ -75,6 +75,13 @@
   border: 1px solid rgba(0,0,0,40);
 }
 
+.EPC-user-name {
+  /* trusted user name styling */
+  margin-left: 0.3em;
+  font-weight: bold;
+  font-style: italic;
+}
+
 .EPC-form-name input {
   margin: 1px;
   padding: 1px;
@@ -87,6 +94,13 @@
   margin: 1px;
   padding: 1px;
   border: 1px solid rgba(0,0,0,40);
+}
+
+.EPC-user-email {
+  /* trusted user email styling */
+  margin-left: 0.3em;
+  font-weight: bold;
+  font-style: italic;
 }
 
 .EPC-form-email input {

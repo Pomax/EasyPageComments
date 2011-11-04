@@ -49,13 +49,22 @@ class EasyPageComments
   var $failures = array();
   var $values = array();
 
+  var $current_user_name;
+  var $current_user_email;
+  var $trusted;
+
   /**
    * The constructor tries to figure out for
    * which page EasyPageComments is running.
    */
-  function __construct() {
+  function __construct($username=false, $email=false) {
     $this->thispage =& $_SERVER["PHP_SELF"];
-    $this->loc =& $_SERVER["SCRIPT_URI"]; }
+    $this->loc =& $_SERVER["SCRIPT_URI"];
+    // is this a trusted user?
+    $this->trusted = $username!==false && $email!==false;
+    $this->current_user_name = $username;
+    $this->current_user_email = $email;
+  }
 
   /**
    * This function ensures the right database
@@ -76,38 +85,41 @@ class EasyPageComments
   /**
    * A simple safifying function.
    */
-	function make_safe($string) {
-		$string = str_replace("<p>","",$string);
-		$string = str_replace("</p>","\n\n",$string);
-		$string = str_replace("<br>","\n",$string);
-		$string = str_replace("<br/>","\n",$string);
-		$string = str_replace("'","&#39;",$string);
-		$string = str_replace('"',"&#34;",$string);
-		$string = str_replace("<","&lt;",$string);
-		$string = str_replace(">","&gt;",$string);
-		return $string; }
+  function make_safe($string) {
+    $string = str_replace("<p>","",$string);
+    $string = str_replace("</p>","\n\n",$string);
+    $string = str_replace("<br>","\n",$string);
+    $string = str_replace("<br/>","\n",$string);
+    $string = str_replace("'","&#39;",$string);
+    $string = str_replace('"',"&#34;",$string);
+    $string = str_replace("<","&lt;",$string);
+    $string = str_replace(">","&gt;",$string);
+    return $string; }
 
-	/**
-	 * We validate email address using the only
-	 * correct regular expression to email addresses.
-	 */
-	function valid_email($email) {
-		$regexp = "/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i";
-		return preg_match($regexp, $email) == 1; }
+  /**
+   * We validate email address using the only
+   * correct regular expression to email addresses.
+   */
+  function valid_email($email) {
+    $regexp = "/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i";
+    return preg_match($regexp, $email) == 1; }
 
   /**
    * Test whether a container has all required keys.
    * This is used for checking $_GET and $_POST
    */
-	function isset_for($CONTAINER, $keys) {
-	  foreach($keys as $key) {
-	    if(!isset($CONTAINER[$key])) return false; }
-	  return true; }
+  function isset_for($CONTAINER, $keys) {
+    foreach($keys as $key) {
+      if(!isset($CONTAINER[$key])) return false; }
+    return true; }
 
   /**
    * Test whether the security question was correctly answered
    */
   function correctAnswer($given) {
+    // trusted users automatically pass
+    if($this->trusted) return true;
+    // untrusted users must have provided the right answer
     foreach($this->security_answers as $answer) {
       if($answer==$given) return true; }
     return false; }
@@ -120,7 +132,10 @@ class EasyPageComments
   function processPOST()
   {
     // if these values are not set, EasyPageComments.php was not called by us!
-    if (!$this->isset_for($_POST, array("name", "email", "body", "security", "reply"))) {
+    $requirements = array("name", "email", "body", "reply");
+    if(!$this->trusted) { $requirements[] = "security"; }
+
+    if (!$this->isset_for($_POST, $requirements)) {
       $html  = "<div class=\"EPC-response\">\n";
       $html .= "<div id=\"EasyPageCommentStatus\">failed</div>\n";
       $html .= "<div class=\"EPC-response-title\">Missing fields</div>\n";
@@ -279,7 +294,12 @@ class EasyPageComments
       $html .= "\t\t<div class=\"EPC-entry-name\">" . $data['name'] . "</div>\n";
       $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#$pagename-comment-$id\">" . $data['timestamp'] . "</a></div>\n";
       $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
-      $html .= "\t\t<div class=\"EPC-entry-reply\"><a href=\"#EPC-form-$pagename\" onclick=\"document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id'; document.querySelector('.EPC-form-name input').focus()\">reply</a></div>\n";
+
+      $onclick  = "document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id';";
+      $onclick  = "document.querySelector('#EPC-$pagename .EPC-comment-type').innerHTML='reply';";
+      if($this->trusted) { $onclick .= "document.querySelector('#EPC-$pagename .EPC-form-comment textarea').focus();"; }
+      else  { $onclick .= "document.querySelector('#EPC-$pagename .EPC-form-name input').focus();"; }
+      $html .= "<div class=\"EPC-entry-reply\"><a href=\"#EPC-form-$pagename\" onclick=\"$onclick\">reply</a></div>\n";
       $html .= "\t</div> <!-- EasyPageComments entry -->\n";
 
       $entry = array("id"=>$id, "parent"=>$data["replyto"], "html"=>$html, "depth"=>1);
@@ -297,7 +317,8 @@ class EasyPageComments
         if($e2["id"]==$parent) {
           if(!isset($e2["children"])) {
             $e2["children"] = array(); }
-          $e2["children"][] = $e; }
+          $e2["children"][] = $e;
+          break; }
         $entrylist[$i]=null; }}
 
     // form HTML for threaded topology
@@ -351,8 +372,17 @@ class EasyPageComments
       <div class="EPC-error-message"><?php
         if($this->failed_post) { echo "There are some problems with your comment that you need to fix before posting."; }
       ?></div>
+
       <div class="EPC-form-name">
         <label>Your name:</label>
+        <?php
+        // Is this a trusted user? If so, fill in the name automatically.
+        if($this->trusted) { ?>
+          <input type="hidden" name="name" value="<?php echo $this->current_user_name; ?>">
+          <span class="EPC-user-name"><?php echo $this->current_user_name;?></span><?php
+        }
+        // If this is not a trusted user, make them fill in their name.
+        else { ?>
         <input type="text" name="name"<?php
           // if posting failed, showing the form on the same page-call should
           // mark errors, and fill in elements with what the user had written.
@@ -361,9 +391,21 @@ class EasyPageComments
             if(isset($this->failures["name"])) {
               echo ' class="EPC-error" title="'.$this->failures["name"].'"';
             }
-          }?>></input></div>
+          }
+          ?>></input>
+      <?php } ?>
+      </div>
+
       <div class="EPC-form-email">
         <label>Your email:</label>
+        <?php
+        // Is this a trusted user? If so, fill in the name automatically.
+        if($this->trusted) { ?>
+          <input type="hidden" name="email" value="<?php echo $this->current_user_email; ?>">
+          <span class="EPC-user-email"><?php echo $this->current_user_email;?></span><?php
+        }
+        // If this is not a trusted user, make them fill in their name.
+        else { ?>
         <input type="text" name="email"<?php
           // if posting failed, showing the form on the same page-call should
           // mark errors, and fill in elements with what the user had written.
@@ -372,9 +414,13 @@ class EasyPageComments
             if(isset($this->failures["email"])) {
               echo ' class="EPC-error" title="'.$this->failures["email"].'"';
             }
-          }?>></input></div>
+          }
+          ?>></input>
+      <?php } ?>
+      </div>
+
       <div class="EPC-form-comment">
-        <label>Your comment or question:</label>
+        <label>Your <span class="EPC-comment-type">comment or question</span>:</label>
         <textarea name="body"<?php
           // if posting failed, showing the form on the same page-call should
           // mark errors, and fill in elements with what the user had written.
@@ -385,7 +431,11 @@ class EasyPageComments
             echo $this->values["body"];
           }?></textarea>
       </div>
+
       <div class="EPC-security">
+        <?php
+        // If this is not a trusted user, we need the security question.
+        if(!$this->trusted) {?>
         <div class="EPC-security-question"><?php echo $this->security_question; ?></div>
         <input type="text" name="security"<?php
           // if posting failed, showing the form on the same page-call should
@@ -403,16 +453,24 @@ class EasyPageComments
           } else {
             echo ' class="EPC-security-answer"';
           }?>></input>
+        <?php } ?>
       </div>
+
       <div class="EPC-form-buttons">
-        <input class="EPC-form-clear" type="reset" name="clear" value="clear fields" onclick="document.querySelector('#EPC-<?php echo $page; ?> input[name=reply]').value='0'"></input>
+        <input class="EPC-form-clear" type="reset" name="clear" value="clear" onclick="<?php
+          echo "document.querySelector('#EPC-$page input[name=reply]').value='0';";
+          echo "document.querySelector('#EPC-$page .EPC-comment-type').innerHTML='comment or question';";
+          if($this->trusted) { echo "document.querySelector('#EPC-$page .EPC-form-comment textarea').focus();"; }
+          else  { echo "document.querySelector('#EPC-$page .EPC-form-name input').focus();"; }
+        ?>"></input>
         <input class="EPC-form-submit" type="<?php
           // If we're running on javascript, the submit button should not
           // actually submit the form, but call a javascript function. As
           // such, turn it into an <input type='button'> instead.
           echo ($asynchronous && $page!==false ? "button" : "submit");
-        ?>" name="submit" value="post comment"<?php
-          if($asynchronous && $page!==false) { echo ' onclick="EasyPageComments.post(\''.$page.'\')"'; }
+        ?>" name="submit" value="post"<?php
+          if($asynchronous && $page!==false) {
+            echo ' onclick="EasyPageComments.post(\''.$page.'\'' . ($this->trusted ? ', true' : '') . ')"'; }
         ?>></input>
       </div>
     </form>
@@ -427,7 +485,15 @@ class EasyPageComments
   based on whether a page was requested via GET or POST.
 **/
 
-$EasyPageComments = new EasyPageComments();
+$EasyPageComments = (isset($EasyPageComments) &&
+                     is_array($EasyPageComments) &&
+                     isset($EasyPageComments["name"]) &&
+                     isset($EasyPageComments["email"])) ?
+                      $EasyPageComments = new EasyPageComments($EasyPageComments["name"], $EasyPageComments["email"])
+                      :
+                      $EasyPageComments = new EasyPageComments();
+
+// deal with EPC-specific POST/GET requests
 if($_SERVER["REQUEST_METHOD"]=="POST") { $EasyPageComments->processPost(); }
 elseif($_SERVER["REQUEST_METHOD"]=="GET") { $EasyPageComments->processGET(); }
 

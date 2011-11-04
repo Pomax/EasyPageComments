@@ -62,6 +62,7 @@ var EasyPageComments = {
    * Visually inform the user that an element has issues
    */
   markError: function(element, message) {
+    if(element==null) return;
     var css = element.getAttribute("class");
     if(css==null) { css=""; }
     css += " EPC-error";
@@ -73,6 +74,7 @@ var EasyPageComments = {
    * remove the visual error
    */
   clearError: function(element) {
+    if(element==null) return;
     var css = element.getAttribute("class");
     if(css==null) return;
     css = css.replace(" EPC-error","");
@@ -93,14 +95,14 @@ var EasyPageComments = {
    * Asynchronously post a comment.
    * This calls createCommentsList upon completion.
    */
-  post: function(pagename) {
+  post: function(pagename, trusted) {
     // set up form data
     var data = new FormData();
     this.appendToFormData(data, "reply",   "#EPC-"+pagename+" .EPC-form-reply");
+    this.appendToFormData(data, "body",    "#EPC-"+pagename+" .EPC-form-comment textarea");
     this.appendToFormData(data, "name",    "#EPC-"+pagename+" .EPC-form-name input");
     this.appendToFormData(data, "email",   "#EPC-"+pagename+" .EPC-form-email input")
-    this.appendToFormData(data, "body",    "#EPC-"+pagename+" .EPC-form-comment textarea");
-    this.appendToFormData(data, "security","#EPC-"+pagename+" .EPC-security-answer");
+    if(!trusted) { this.appendToFormData(data, "security","#EPC-"+pagename+" .EPC-security-answer"); }
     data.append("page", pagename);
 
     // post it

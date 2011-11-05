@@ -167,7 +167,7 @@ class EasyPageComments
     // get the values we need
     $name = $this->make_safe($_POST["name"]);
     $email = trim($_POST["email"]);
-    $timestamp = date("l, F j") . "<sup>" . date("S") . "</sup>" . date(" Y - g:i a (") . "GMT" . substr(date("P"),0,1) . substr(date("P"),2,1) . ")";
+    $timestamp = time();
     $body = $this->make_safe($_POST["body"]);
     $answer = trim($_POST["security"]);
     $replyto = intval(str_replace("EasyPageComment","",$this->make_safe($_POST["reply"])));
@@ -310,7 +310,12 @@ class EasyPageComments
       $html .= "\" id=\"EasyPageComment$id-" . $data['replyto'] . "\">\n";
       $html .= "\t\t<a name=\"$pagename-comment-$id\"></a>\n";
       $html .= "\t\t<div class=\"EPC-entry-name\">" . $data['name'] . "</div>\n";
-      $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#$pagename-comment-$id\">" . $data['timestamp'] . "</a></div>\n";
+
+      // convert timestamp to string
+      $t =& $data["timestamp"];
+      $timestamp = date("l, F j", $t) . "<sup>" . date("S", $t) . "</sup>" . date(" Y - g:i a (", $t) . "GMT" . substr(date("P", $t),0,1) . substr(date("P", $t),2,1) . ")";
+
+      $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#$pagename-comment-$id\">$timestamp</a></div>\n";
       $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
 
       $onclick  = "document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id';";
@@ -517,8 +522,11 @@ class EasyPageComments
     $dbh = new PDO($this->db_handle);
     foreach($dbh->query("SELECT * FROM comments ORDER BY id DESC") as $data)
     {
+      $t =& $data["timestamp"];
+      $timestamp = date("l, F j", $t) . "<sup>" . date("S", $t) . "</sup>" . date(" Y - g:i a (", $t) . "GMT" . substr(date("P", $t),0,1) . substr(date("P", $t),2,1) . ")";
+
       $rss .= "    <item>\n";
-      $rss .= "      <title>Comment by " .$this->make_readable($data['name']). " (" . $data['timestamp']. ")</title>\n";
+      $rss .= "      <title>Comment by " .$this->make_readable($data['name']). " (" . $timestamp. ")</title>\n";
       $rss .= "      <description> " . $this->make_readable($data['body']) . "</description>\n";
       $rss .= "    </item>\n";
     }

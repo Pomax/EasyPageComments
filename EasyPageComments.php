@@ -97,6 +97,17 @@ class EasyPageComments
     return $string; }
 
   /**
+   * Turn a string from safified into
+   * a reasobly readable string.
+   */
+  function make_readable($string) {
+    $string = preg_replace_callback("/(&#[0-9]+;)/", function($m) { return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES"); }, $string);
+    $string = str_replace("<","&lt;",$string);
+    $string = str_replace(">","&gt;",$string);
+    $string = str_replace("\n","<br>",$string);
+    return $string; }
+
+  /**
    * We validate email address using the only
    * correct regular expression to email addresses.
    */
@@ -268,7 +279,9 @@ class EasyPageComments
     if(isset($_GET["getList"])) {
       print $this->createCommentsList($_GET["getList"]); }
     elseif(isset($_GET["getForm"])) {
-      print $this->createCommentForm($_GET["getForm"], true); }}
+      print $this->createCommentForm($_GET["getForm"], true); }
+    elseif(isset($_GET["getRSS"])) {
+      print $this->createRSSfeed($_GET["getRSS"]); }}
 
 // ------
 
@@ -322,7 +335,8 @@ class EasyPageComments
         $entrylist[$i]=null; }}
 
     // form HTML for threaded topology
-    $html = "<div class=\"EPC-list\">\n";
+    $html  = "<div class=\"EPC-list\">\n";
+    $html .= "<div class=\"EPC-RSS-link\"><a href=\".?getRSS=$pagename\" title=\"RSS feed for this comment thread\"><img src=\"rss.png\" alt=\"RSS feed\"/></a></div>\n";
     foreach($entrylist as $entry) {
       if($entry==null) continue;
       if($entry["parent"]==0) {
@@ -476,6 +490,40 @@ class EasyPageComments
     </form>
     <?php
   }
+
+
+  /**
+   * This function generates an RSS feed from the comment section
+   */
+  function createRSSfeed($pagename=false)
+  {
+    $entrylist = array();
+    if($pagename!==false) { $this->thispage = $pagename; }
+
+    $this->verify_db($pagename);
+    $rss  = '<?xml version="1.0" encoding="UTF-8" ?>' . "\n";
+    $rss .= '<rss version="0.91">' . "\n";
+    $rss .= "  <channel> \n";
+    $rss .= "    <title>".$this->thispage." comment feed</title>\n";
+    $rss .= "    <ttl>150</ttl>\n";
+
+    $dbh = new PDO($this->db_handle);
+    foreach($dbh->query("SELECT * FROM comments ORDER BY id DESC") as $data)
+    {
+      $rss .= "    <item>\n";
+      $rss .= "      <title>Comment by " .$this->make_readable($data['name']). " (" . $data['timestamp']. ")</title>\n";
+      $rss .= "      <description> " . $this->make_readable($data['body']) . "</description>\n";
+      $rss .= "    </item>\n";
+    }
+    $dbh = null;
+    $rss .= "  </channel>\n";
+    $rss .= "</rss>\n";
+
+    print $rss;
+    // we terminate after an RSS request. No additional content may be generated.
+    exit(0);
+  }
+
 }
 
 /**

@@ -2,6 +2,11 @@
   Comment list and entry styling
 */
 
+.EPC-RSS-link {
+  position: relative;
+  float: right;
+}
+
 .EPC-list a { text-decoration: none; }
 .EPC-list a:link    { color: #33F; }
 .EPC-list a:visited { color: #33F; }

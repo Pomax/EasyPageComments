@@ -23,6 +23,9 @@ class EasyPageComments
   // what are valid security answers for this page?
   var $security_answers = array("10", "ten", "１０");
 
+  // should comment threads get an auto-generated RSS feed button?
+  var $rss = true;
+
   // should you be notified by email when someone posts a comment?
   var $notify = false;
 
@@ -101,7 +104,9 @@ class EasyPageComments
    * a reasobly readable string.
    */
   function make_readable($string) {
-    $string = preg_replace_callback("/(&#[0-9]+;)/", function($m) { return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES"); }, $string);
+    $string = preg_replace_callback("/(&#[0-9]+;)/",
+                                    create_function('$m', 'return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES");'),
+                                    $string);
     $string = str_replace("<","&lt;",$string);
     $string = str_replace(">","&gt;",$string);
     $string = str_replace("\n","<br>",$string);
@@ -336,7 +341,9 @@ class EasyPageComments
 
     // form HTML for threaded topology
     $html  = "<div class=\"EPC-list\">\n";
-    $html .= "<div class=\"EPC-RSS-link\"><a href=\".?getRSS=$pagename\" title=\"RSS feed for this comment thread\"><img src=\"rss.png\" alt=\"RSS feed\"/></a></div>\n";
+    if($this->rss) {
+      $html .= "<div class=\"EPC-RSS-link\"><a href=\".?getRSS=$pagename\" title=\"RSS feed for this comment thread\">";
+      $html .= "<img src=\"rss.png\" alt=\"RSS feed\"/></a></div>\n"; }
     foreach($entrylist as $entry) {
       if($entry==null) continue;
       if($entry["parent"]==0) {

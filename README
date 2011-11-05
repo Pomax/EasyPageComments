@@ -12,6 +12,29 @@ the content generation. An explanation can be found on:
 
   http://pomax.nihongoresources.com/pages/EasyPageComments
 
+Features:
+
+- Drop-in install
+- Separate comments listing and comment form injection
+- All elements can be individually styled using CSS
+- Threaded commenting with nested replies
+- Allows multiple comment sections on a single page
+- RSS feed link per comment section
+- Simplified posting for users you say are logged in
+  (no need for them to fill in their name and email
+  address or security questions)
+- Works in either simple or rich mode, depending on
+  whether you need to support browsers that don't support
+  JavaScript.
+- Backed SQLite (file based) databases, which makes it
+  really easy to migrate and/or administrate
+- Hash aware. Regardless of how late you generate comments,
+  jumping to hash still works.
+
+
+  ================================
+
+
 I'm still figuring out the precise license for this.
 Basically you're free to use it however you want, but if
 you're using it on sites in a way that allows you to make

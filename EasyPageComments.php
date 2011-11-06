@@ -8,11 +8,11 @@
 
 class EasyPageComments
 {
+  var $VERSION = "2011-11-06-10-41";
 
 // ------------------------------------
 //    MODIFY TO FIT PERSONAL NEEDS
 // ------------------------------------
-
 
   // this is used to mark your own posts differently from everyone else's
   var $admin_alias = "Pomax";
@@ -27,7 +27,7 @@ class EasyPageComments
   var $rss = true;
 
   // should you be notified by email when someone posts a comment?
-  var $notify = false;
+  var $notify = true;
 
   // what's the email address to send those notifications to?
   var $to = "mymail@mydomain.com";
@@ -38,13 +38,17 @@ class EasyPageComments
   // where can the sqlite database be found
   var $db_dir = "./sqlite";
 
+  // if EasyPageComments.php is not in the same directory as the
+  // calling script, this value must be overriden in the constructor.
+  var $EPC_path = "";
+
 // ------------------------------------
 //    DO NOT MODIFY BEYOND THIS POINT
 // ------------------------------------
 
-  var $db_handle;
-  var $thispage;
-  var $loc;
+  var $db_handle = -1;
+  var $thispage = "";
+  var $loc = "";
   var $build_db = false;
   var $from_javascript = false;
 
@@ -52,21 +56,23 @@ class EasyPageComments
   var $failures = array();
   var $values = array();
 
-  var $current_user_name;
-  var $current_user_email;
-  var $trusted;
+  var $current_user_name = false;
+  var $current_user_email = false;
+  var $trusted = false;
 
   /**
    * The constructor tries to figure out for
    * which page EasyPageComments is running.
    */
-  function __construct($username=false, $email=false) {
+  function __construct($parameters=array()) {
     $this->thispage =& $_SERVER["PHP_SELF"];
     $this->loc =& $_SERVER["SCRIPT_URI"];
+    // set values based on passed parameters (if any were passed)
+    if(isset($parameters["name"]))  { $this->current_user_name  = $parameters["name"]; }
+    if(isset($parameters["email"])) { $this->current_user_email = $parameters["email"]; }
+    if(isset($parameters["path"])) { $this->EPC_path = $parameters["path"]; }
     // is this a trusted user?
-    $this->trusted = $username!==false && $email!==false;
-    $this->current_user_name = $username;
-    $this->current_user_email = $email;
+    $this->trusted = $this->current_user_name!==false && $this->current_user_email!==false;
   }
 
   /**
@@ -77,11 +83,8 @@ class EasyPageComments
     $db_location = $this->db_dir . "/" . $db_name . ".db";
     $build_db = (!file_exists($db_location));
     $this->db_handle = "sqlite:" . $db_location;
-    if($build_db) {
-      $dbh = new PDO($this->db_handle);
-      $create = "CREATE TABLE comments(id INTEGER PRIMARY KEY AUTOINCREMENT, page TEXT, name TEXT, email TEXT, timestamp INTEGER, body TEXT, replyto INTEGER)";
-      $stmt = $dbh->prepare($create);
-      $stmt->execute(); }}
+    if($build_db) { EPC_Schema::create($this->db_handle); }
+  }
 
   // ------
 
@@ -170,7 +173,7 @@ class EasyPageComments
     $timestamp = time();
     $body = $this->make_safe($_POST["body"]);
     $answer = trim($_POST["security"]);
-    $replyto = intval(str_replace("EasyPageComment","",$this->make_safe($_POST["reply"])));
+    $replyto = intval(str_replace("EasyPageComment","",$_POST["reply"]));
 
     // make sure to cache the values in case something fails (but don't cache the security answer)
     $this->values = array("name"=>$name, "email"=>$email, "body"=>$body, "replyto"=>$replyto);
@@ -191,8 +194,10 @@ class EasyPageComments
         $this->verify_db($this->thispage);
         $dbh = new PDO($this->db_handle);
 
-         // insert the comment
-        $insert = 'INSERT INTO comments (page, name, email, timestamp, body, replyto) VALUES ("' . $this->thispage . '", "' . $name . '", "' . $email  . '", "' . $timestamp . '", "' . $body . '", "' . $replyto . '")';
+        // insert the comment
+        // TODO: add the "notify" column
+        $insert  = 'INSERT INTO comments (page, name, email, timestamp, body, replyto) ';
+        $insert .= 'VALUES ("' . $this->thispage . '", "' . $name . '", "' . $email  . '", "' . $timestamp . '", "' . $body . '", ' . $replyto . ')';
         $result = $dbh->exec($insert);
         $dbh = null;
         $success = ($result==1);
@@ -201,21 +206,42 @@ class EasyPageComments
          * Posting succeeded!
          */
         if($success) {
+
           $html .= '<input id="EPC-status" name="'.$this->thispage.'" value="SUCCESS">'."\n";
 
           // if notification is desired, send out a mail
-          if($this->notify)
+          // (but not for our own messages)
+          if($name!==$this->admin_alias && $this->notify)
           {
-            $message = "A comment was posted on ".$this->loc." by $name ($email):\n";
-            $message .= "\n---\n$body\n\n";
-            $message .= "click <a href=\"".$this->loc."#EasyPageComments\">here</a> to view this comment online\n";
+            // get the id for this post after insertion
+            $dbh = new PDO($this->db_handle);
+            $id = 0;
+            $query = "SELECT * FROM comments WHERE page = '".$this->thispage."' AND name = '$name' AND email = '$email' AND timestamp = $timestamp";
+            foreach($dbh->query($query) as $data) { $id = $data["id"]; }
+            $dbh = null;
 
+            // quick alias
+            $page =& $this->thispage;
+            $loc =& $this->loc;
+
+            // compose message
+            $message = "A comment was posted on $loc by $name ($email):\n";
+            $message .= "\n---\n$body\n\n";
+            $message .= "click <a href=\"$loc#${page}-comment-$id\">here</a> to view this comment online\n";
+
+            // set up headers
             $headers = "From: EasyPageComment-Mailer@" . $_SERVER["HTTP_HOST"] . "\r\n" .
                        "Reply-To: $name <$email>\r\n" .
                        "X-Mailer: PHP/" . phpversion();
 
+            // and mail everything off
             mail($this->to, $this->subject, $message, $headers);
           }
+
+          // TODO: send mails to all users that want to be notified of downstream replies
+          /*
+            code goes here
+          */
         }
 
         /**
@@ -285,8 +311,8 @@ class EasyPageComments
       print $this->createCommentsList($_GET["getList"]); }
     elseif(isset($_GET["getForm"])) {
       print $this->createCommentForm($_GET["getForm"], true); }
-    elseif(isset($_GET["getRSS"])) {
-      print $this->createRSSfeed($_GET["getRSS"]); }}
+    elseif(isset($_GET["getRSS"]) && isset($_GET["url"])) {
+      print $this->createRSSfeed($_GET["getRSS"], $_GET["url"]); }}
 
 // ------
 
@@ -301,7 +327,7 @@ class EasyPageComments
 
     $this->verify_db($pagename);
     $dbh = new PDO($this->db_handle);
-    foreach($dbh->query("SELECT * FROM COMMENTS WHERE page LIKE '".$this->thispage."' ORDER BY replyto") as $data)
+    foreach($dbh->query("SELECT * FROM comments WHERE page LIKE '".$this->thispage."' ORDER BY replyto") as $data)
     {
       $id = $data['id'];
 
@@ -318,10 +344,11 @@ class EasyPageComments
       $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#$pagename-comment-$id\">$timestamp</a></div>\n";
       $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
 
-      $onclick  = "document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id';";
-      $onclick  = "document.querySelector('#EPC-$pagename .EPC-comment-type').innerHTML='reply';";
+      $onclick   = "document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id';";
+      $onclick  .= "document.querySelector('#EPC-$pagename .EPC-comment-type').innerHTML='reply';";
       if($this->trusted) { $onclick .= "document.querySelector('#EPC-$pagename .EPC-form-comment textarea').focus();"; }
       else  { $onclick .= "document.querySelector('#EPC-$pagename .EPC-form-name input').focus();"; }
+
       $html .= "<div class=\"EPC-entry-reply\"><a href=\"#EPC-form-$pagename\" onclick=\"$onclick\">reply</a></div>\n";
       $html .= "\t</div> <!-- EasyPageComments entry -->\n";
 
@@ -347,7 +374,7 @@ class EasyPageComments
     // form HTML for threaded topology
     $html  = "<div class=\"EPC-list\">\n";
     if($this->rss) {
-      $html .= "<div class=\"EPC-RSS-link\"><a href=\".?getRSS=$pagename\" title=\"RSS feed for this comment thread\">";
+      $html .= "<div class=\"EPC-RSS-link\"><a href=\"" . $this->EPC_path . "EasyPagecomments.php?getRSS=${pagename}&url=" . $this->page_url(). "\" title=\"RSS feed for this comment thread\">";
       $html .= "<img src=\"rss.png\" alt=\"RSS feed\"/></a></div>\n"; }
     foreach($entrylist as $entry) {
       if($entry==null) continue;
@@ -503,14 +530,26 @@ class EasyPageComments
     <?php
   }
 
+  /**
+   * This function gets the page URL for RSS <link> elements
+   */
+  function page_url() {
+   $pageURL = 'http';
+   if ($_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
+   $pageURL .= "://";
+   if ($_SERVER["SERVER_PORT"] != "80") { $pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"]; }
+   else { $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"]; }
+   return preg_replace("/\?.+/","",$pageURL);
+  }
 
   /**
    * This function generates an RSS feed from the comment section
    */
-  function createRSSfeed($pagename=false)
+  function createRSSfeed($pagename=false, $url=false)
   {
     $entrylist = array();
     if($pagename!==false) { $this->thispage = $pagename; }
+    if($url===false) { return; }
 
     $this->verify_db($pagename);
     $rss  = '<?xml version="1.0" encoding="UTF-8" ?>' . "\n";
@@ -527,6 +566,7 @@ class EasyPageComments
 
       $rss .= "    <item>\n";
       $rss .= "      <title>Comment by " .$this->make_readable($data['name']). " (" . $timestamp. ")</title>\n";
+      $rss .= "      <link>" . $url . "#${pagename}-comment-".$data["id"]."</link>\n";
       $rss .= "      <description> " . $this->make_readable($data['body']) . "</description>\n";
       $rss .= "    </item>\n";
     }
@@ -542,23 +582,140 @@ class EasyPageComments
 }
 
 /**
+ * Class for database schema columns
+ */
+class EPC_Schema_Entity {
+  var $name, $type, $default;
+  function __construct($column_name, $column_type, $default) {
+    $this->name = $column_name;
+    $this->type = $column_type;
+    $this->default = $default; }
+  function toString() {
+    return $this->name . " " . $this->type . " DEFAULT '" . $this->default . "'"; }}
+
+/**
+ * Class for the EasyPageComments database schema
+ */
+class EPC_Schema
+{
+  /**
+   * The current database schema
+   * (initialised when first requested)
+   */
+  static $schema = array();
+
+  /**
+   * add an EPC_Schema_Entity to the schema collection
+   */
+  static function addSchemaEntry($name, $type, $default)
+  {
+    EPC_SCHEMA::$schema[$name] = new EPC_Schema_Entity($name, $type, $default);
+  }
+
+  /**
+   * Get the current database schema
+   */
+  static function getSchema()
+  {
+    if(count(EPC_SCHEMA::$schema)==0) {
+
+      // Schema used in v2011-11-06-10-41 and earlier
+
+      // unique entry identifier
+      EPC_SCHEMA::addSchemaEntry("id","INTEGER PRIMARY KEY AUTOINCREMENT",0);
+      // comment collection name
+      EPC_SCHEMA::addSchemaEntry("page","TEXT","EasyPageComments");
+      // user name
+      EPC_SCHEMA::addSchemaEntry("name","TEXT","");
+      // user email
+      EPC_SCHEMA::addSchemaEntry("email","TEXT","");
+      // unix timestamp for when the message is recorded
+      EPC_SCHEMA::addSchemaEntry("timestamp","INTEGER",0);
+      // comment text
+      EPC_SCHEMA::addSchemaEntry("body","TEXT","");
+      // is this entry a reply? 0 means no, 1+ means it's a reply to id=replyto
+      EPC_SCHEMA::addSchemaEntry("replyto","INTEGER",0);
+
+      /*
+        TODO: add in email notifications to individual posters when
+              someone replies downstream from their comment.
+
+        // email notification; 0 means no, 1 means yes (added in v2011-11-06-10-41)
+        EPC_SCHEMA::addSchemaEntry("notify","INTEGER",0);
+      */
+    }
+    return EPC_SCHEMA::$schema;
+  }
+
+  /**
+   * Build the database from schema
+   */
+  static function create($db_handle)
+  {
+    // build create statement
+    $create = "CREATE TABLE comments(";
+    foreach(EPC_Schema::getSchema() as $key => $entry) {
+      $create .= $entry->toString() . ", "; }
+    $create = substr($create, 0, strlen($create)-2) . ")";
+
+    // execute build
+    $dbh = new PDO($db_handle);
+    $stmt = $dbh->prepare($create);
+    $stmt->execute();
+    $dbh = null;
+
+    // return statement used for creation
+    return $create;
+  }
+
+  /**
+   * Upgrade an older database to the current schema
+   */
+  static function upgrade($db_handle)
+  {
+/*
+    // backup the original
+    $dbh = new PDO($db_handle);
+    $stmt = $dbh->prepare("CREATE TABLE comments_backup AS SELECT * FROM comments");
+    $stmt->execute();
+
+    // drop the original and create the new table layout
+    $stmt = $dbh->prepare("DROP TABLE comments");
+    $stmt->execute();
+    $dbh = null;
+    EPC_Schema::create($db_handle);
+
+    // copy the old data back in
+    // -- FIXME: this is not how it works in SQLITE, it'll complain about column mismatching
+    $dbh = new PDO($db_handle);
+    $stmt = $dbh->prepare("SELECT * INTO comments FROM comments_backup");
+    $stmt->execute();
+
+    // and delete the backup
+    $stmt = $dbh->prepare("DROP TABLE comments_backup");
+    $stmt->execute();
+    $dbh = null;
+*/
+  }
+}
+
+/**
   The preceding code sets up the EasyPageComments class,
-  the following code actually makes use of it by building
+  as well as dependency classes.
+
+  The following code actually makes use of them, by building
   an EasyPageComments object, and making it do its thing
   based on whether a page was requested via GET or POST.
 **/
 
-$EasyPageComments = (isset($EasyPageComments) &&
-                     is_array($EasyPageComments) &&
-                     isset($EasyPageComments["name"]) &&
-                     isset($EasyPageComments["email"])) ?
-                      $EasyPageComments = new EasyPageComments($EasyPageComments["name"], $EasyPageComments["email"])
-                      :
-                      $EasyPageComments = new EasyPageComments();
+$EasyPageComments = new EasyPageComments(isset($EasyPageComments) && is_array($EasyPageComments) ? $EasyPageComments : array());
 
 // deal with EPC-specific POST/GET requests
-if($_SERVER["REQUEST_METHOD"]=="POST") { $EasyPageComments->processPost(); }
-elseif($_SERVER["REQUEST_METHOD"]=="GET") { $EasyPageComments->processGET(); }
+if(isset($_SERVER["REQUEST_METHOD"])) {
+  if($_SERVER["REQUEST_METHOD"]=="POST") {
+    $EasyPageComments->processPost(); }
+  elseif($_SERVER["REQUEST_METHOD"]=="GET") {
+    $EasyPageComments->processGET(); }}
 
 /**
   After this point, control is returned to whatever included

@@ -4,18 +4,23 @@
  * EasyPageComments package
  * (c) Mike "Pomax" Kamermans, 2011
  * http://github.com/Pomax/EasyPageComments
+ *
+ * UTF: ☺
  */
 
 class EasyPageComments
 {
-  var $VERSION = "2011-11-06-10-41";
+  var $VERSION = "2011-11-07-12-19";
 
 // ------------------------------------
 //    MODIFY TO FIT PERSONAL NEEDS
 // ------------------------------------
 
   // this is used to mark your own posts differently from everyone else's
-  var $admin_alias = "Pomax";
+  var $admin_alias = "YourNameHere!";
+
+  // the owner nickname is password protected, which is used in place of an email address
+  var $admin_password = "This can be as long as you like; Unicode and case is respected.";
 
   // what should be the security question for this page?
   var $security_question = "If I write a one, and then a zero, which number did I write?";
@@ -30,7 +35,7 @@ class EasyPageComments
   var $notify = true;
 
   // what's the email address to send those notifications to?
-  var $to = "mymail@mydomain.com";
+  var $to = "alias@example.org";
 
   // what's the subject you'd like?
   var $subject = "[EasyPageComments] page comment posted";
@@ -120,6 +125,8 @@ class EasyPageComments
    * correct regular expression to email addresses.
    */
   function valid_email($email) {
+    // security bypass for trusted users
+    if($this->trusted) return true;
     $regexp = "/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i";
     return preg_match($regexp, $email) == 1; }
 
@@ -135,12 +142,18 @@ class EasyPageComments
   /**
    * Test whether the security question was correctly answered
    */
-  function correctAnswer($given) {
-    // trusted users automatically pass
+  function passes_security($name, $email, $answer) {
+    // Trusted users automatically pass
     if($this->trusted) return true;
-    // untrusted users must have provided the right answer
-    foreach($this->security_answers as $answer) {
-      if($answer==$given) return true; }
+    // If this is an owner comment with the right password,
+    // the user also passes without needing an answer.
+    // However, if it's the wrong password, the check fails.
+    if($name==$this->admin_alias) {
+      $this->trusted = true;
+      return $email==$this->admin_password; }
+    // Untrusted users must have provided the right answer
+    foreach($this->security_answers as $correct) {
+      if($answer==$correct) return true; }
     return false; }
 
 // ------
@@ -186,13 +199,17 @@ class EasyPageComments
     // processing is contingent on the security question
     // being answered correctly. If it's wrong, we don't
     // even bother looking at the rest of the data.
-    if($this->correctAnswer($answer))
+    if($this->passes_security($name, $email, $answer))
     {
+      // if all fields are acceptable post the comment
       if($name!=""&& $this->valid_email($email) && $body !="")
       {
-        $success = true;
         $this->verify_db($this->thispage);
         $dbh = new PDO($this->db_handle);
+
+        // replace owner password with email, because we don't
+        // want the password stored in the database (unencrypted even!)
+        if($name==$this->admin_alias) { $email = $this->to; }
 
         // insert the comment
         // TODO: add the "notify" column
@@ -294,7 +311,10 @@ class EasyPageComments
       $this->failed_post = true;
       $this->failures["security"] = "You did not answer the security question correctly";
       $html .= '<input id="EPC-status" name="'.$this->thispage.'" value="FAILED">' . "\n";
-      $html .= '<input name="security" value="You did not answer the security question correctly">'."\n";
+      if($name==$this->admin_alias) {
+        $html .= '<input name="email" value="You did not fill in the correct owner password">'."\n"; }
+      else {
+        $html .= '<input name="security" value="You did not answer the security question correctly">'."\n"; }
     }
 
     // if we're calling from javascript, print response.
@@ -445,7 +465,8 @@ class EasyPageComments
               echo ' class="EPC-error" title="'.$this->failures["name"].'"';
             }
           }
-          ?>></input>
+          $monitor = "EasyPageComments.monitorAlias(event, '$page', this, '".$this->admin_alias."')";
+          ?> onkeydown="<?php echo $monitor; ?>" onkeyup="<?php echo $monitor; ?>"</input>
       <?php } ?>
       </div>
 

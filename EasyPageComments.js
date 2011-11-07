@@ -150,5 +150,39 @@ var EasyPageComments = {
     };
     xhr.open("POST",this.EasyPageCommentLocation+"?caller=JavaScript",true);
     xhr.send(data);
+  },
+
+  // state variable for the monitorAlias function
+  ownerAlias: false,
+
+  /**
+   * Username input monitor. If the username matches
+   * the owner nickname, the email field becomes a
+   * password field instead (this is also verified
+   * at the backend, so simply hacking the JS to compare
+   * against a different nickname won't do anything.
+   * This function is purely cosmetic)
+   */
+  monitorAlias: function(e, comment_section, element, owner) {
+    var text = element.value;
+    var label, input;
+    if(!this.ownerAlias && text==owner) {
+      label = document.querySelector('#EPC-'+comment_section+' .EPC-form-email label');
+      input = document.querySelector('#EPC-'+comment_section+' .EPC-form-email input');
+      input.type = "password";
+      label.innerHTML = "Password:";
+      // hide security question, it's irrelevant for the owner
+      document.querySelector('#EPC-'+comment_section+' .EPC-security').style.visibility = "hidden";
+      this.ownerAlias = true;
+    }
+    else if(this.ownerAlias && text!=owner) {
+      label = document.querySelector('#EPC-'+comment_section+' .EPC-form-email label');
+      input = document.querySelector('#EPC-'+comment_section+' .EPC-form-email input');
+      input.type="text";
+      input.value="";
+      label.innerHTML = "Your email:";
+      document.querySelector('#EPC-'+comment_section+' .EPC-security').style.visibility = "visible";
+      this.ownerAlias = false;
+    }
   }
 };

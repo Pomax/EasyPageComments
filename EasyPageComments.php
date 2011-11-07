@@ -10,7 +10,7 @@
 
 class EasyPageComments
 {
-  var $VERSION = "2011-11-07-12-19";
+  var $VERSION = "2011-11-07-12-51";
 
 // ------------------------------------
 //    MODIFY TO FIT PERSONAL NEEDS
@@ -465,7 +465,7 @@ class EasyPageComments
               echo ' class="EPC-error" title="'.$this->failures["name"].'"';
             }
           }
-          $monitor = "EasyPageComments.monitorAlias(event, '$page', this, '".$this->admin_alias."')";
+          $monitor = "if(EasyPageComments) { EasyPageComments.monitorAlias(event, '$page', this, '".$this->admin_alias."'); }";
           ?> onkeydown="<?php echo $monitor; ?>" onkeyup="<?php echo $monitor; ?>"</input>
       <?php } ?>
       </div>

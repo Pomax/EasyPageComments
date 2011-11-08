@@ -29,12 +29,12 @@
    echo "Database schema entry {timestamp}: " . equal($EPC_test_var["timestamp"]->name, "timestamp") . "\n";
    echo "Database schema entry {body}: "      . equal($EPC_test_var["body"]->name, "body")       . "\n";
    echo "Database schema entry {replyto}: "   . equal($EPC_test_var["replyto"]->name, "replyto") . "\n";
-//   echo "Database schema entry {notify}: "    . equal($EPC_test_var["notify"]->name, "notify")   . "\n";
+   echo "Database schema entry {notify}: "    . equal($EPC_test_var["notify"]->name, "notify")   . "\n";
 
-   $expected = "CREATE TABLE comments(id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT '0', page TEXT DEFAULT 'EasyPageComments', name TEXT DEFAULT '', email TEXT DEFAULT '', timestamp INTEGER DEFAULT '0', body TEXT DEFAULT '', replyto INTEGER DEFAULT '0')";
+//   $expected = "CREATE TABLE comments(id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT '0', page TEXT DEFAULT 'EasyPageComments', name TEXT DEFAULT '', email TEXT DEFAULT '', timestamp INTEGER DEFAULT '0', body TEXT DEFAULT '', replyto INTEGER DEFAULT '0')";
 //   $expected = "CREATE TABLE comments(id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT '0', page TEXT DEFAULT 'EasyPageComments', name TEXT DEFAULT '', email TEXT DEFAULT '', timestamp INTEGER DEFAULT '0', body TEXT DEFAULT '', replyto INTEGER DEFAULT '0', notify INTEGER DEFAULT '0')";
-   echo "Database creation: " . equal(EPC_Schema::create("sqlite:EPC_test.db"), $expected) . "\n";
-   unlink("EPC_test.db");
+//   echo "Database creation: " . equal(EPC_Schema::create("sqlite:EPC_test.db"), $expected) . "\n";
+//   unlink("EPC_test.db");
 
 // TODO: add in unit testing for database upgrading
 //

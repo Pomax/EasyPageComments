@@ -98,12 +98,13 @@ var EasyPageComments = {
   post: function(pagename, trusted) {
     // set up form data
     var data = new FormData();
-    this.appendToFormData(data, "reply",   "#EPC-"+pagename+" .EPC-form-reply");
-    this.appendToFormData(data, "body",    "#EPC-"+pagename+" .EPC-form-comment textarea");
-    this.appendToFormData(data, "name",    "#EPC-"+pagename+" .EPC-form-name input");
-    this.appendToFormData(data, "email",   "#EPC-"+pagename+" .EPC-form-email input")
+    this.appendToFormData(data, "reply",  "#EPC-"+pagename+" .EPC-form-reply");
+    this.appendToFormData(data, "body",   "#EPC-"+pagename+" .EPC-form-comment textarea");
+    this.appendToFormData(data, "name",   "#EPC-"+pagename+" .EPC-form-name input");
+    this.appendToFormData(data, "email",  "#EPC-"+pagename+" .EPC-form-email input")
     if(!trusted) { this.appendToFormData(data, "security","#EPC-"+pagename+" .EPC-security-answer"); }
     data.append("page", pagename);
+    if(document.querySelector("#EPC-"+pagename+" .EPC-form-notify input").checked) { data.append("notify",true); }
 
     // post it
     var xhr = new XMLHttpRequest();
@@ -155,6 +156,20 @@ var EasyPageComments = {
   // state variable for the monitorAlias function
   ownerAlias: false,
 
+  // caches the security div CSS setting for restoring if a user
+  // name coinciding with ours is changed to something else
+  securityCSS: false,
+
+  // caches the notification div CSS setting for restoring if a user
+  // name coinciding with ours is changed to something else
+  notifyCSS: false,
+
+  // which attribute do we fiddle with when hiding security/notification?
+  cssRegulator: "visibility",
+
+  // which value do we set to effect hiding?
+  cssHide: "hidden",
+
   /**
    * Username input monitor. If the username matches
    * the owner nickname, the email field becomes a
@@ -164,15 +179,19 @@ var EasyPageComments = {
    * This function is purely cosmetic)
    */
   monitorAlias: function(e, comment_section, element, owner) {
-    var text = element.value;
-    var label, input;
+    var label, input, security, notify, text = element.value.trim().toLowerCase();
     if(!this.ownerAlias && text==owner) {
       label = document.querySelector('#EPC-'+comment_section+' .EPC-form-email label');
       input = document.querySelector('#EPC-'+comment_section+' .EPC-form-email input');
       input.type = "password";
       label.innerHTML = "Password:";
-      // hide security question, it's irrelevant for the owner
-      document.querySelector('#EPC-'+comment_section+' .EPC-security').style.visibility = "hidden";
+      // hide security question and mail notification option (they're irrelevant for the owner)
+      security = document.querySelector('#EPC-'+comment_section+' .EPC-security');
+      notify   = document.querySelector('#EPC-'+comment_section+' .EPC-form-notify');
+      this.securityCSS = security.style[this.cssRegulator];
+      this.notifyCSS   = notify.style[this.cssRegulator];
+      security.style[this.cssRegulator] = this.cssHide;
+      notify.style[this.cssRegulator]   = this.cssHide;
       this.ownerAlias = true;
     }
     else if(this.ownerAlias && text!=owner) {
@@ -181,7 +200,11 @@ var EasyPageComments = {
       input.type="text";
       input.value="";
       label.innerHTML = "Your email:";
-      document.querySelector('#EPC-'+comment_section+' .EPC-security').style.visibility = "visible";
+      // show security question and mail notification option again
+      security = document.querySelector('#EPC-'+comment_section+' .EPC-security');
+      notify   = document.querySelector('#EPC-'+comment_section+' .EPC-form-notify');
+      security.style[this.cssRegulator] = this.securityCSS;
+      notify.style[this.cssRegulator]   = this.notifyCSS;
       this.ownerAlias = false;
     }
   }

@@ -19,6 +19,8 @@ Features:
 - All elements can be individually styled using CSS
 - Threaded commenting with nested replies
 - Allows multiple comment sections on a single page
+- Email post and reply notification
+- Posting as owner is password protected
 - RSS feed link per comment section
 - Simplified posting for users you say are logged in
   (no need for them to fill in their name and email
@@ -30,6 +32,8 @@ Features:
   really easy to migrate and/or administrate
 - Hash aware. Regardless of how late you generate comments,
   jumping to hash still works.
+- Error highlighting when trying to post with missing
+  or illegal form fields.
 
 
   ================================

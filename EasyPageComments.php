@@ -196,7 +196,7 @@ class EasyPageComments
 
     if (!$this->isset_for($_POST, $requirements)) {
       $html  = "<div class=\"EPC-response\">\n";
-      $html .= "<div id=\"EasyPageCommentStatus\">failed</div>\n";
+      $html .= "<div id=\"EPC-status\">failed</div>\n";
       $html .= "<div class=\"EPC-response-title\">Missing fields</div>\n";
       $html .= "<p>Could not process form: required element values are missing.</p>";
       $html .= "</div> <!-- EPC-response-text -->\n";

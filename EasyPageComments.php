@@ -176,13 +176,14 @@ class EasyPageComments
   /**
    * build the list of parents
    */
-  function buildParentList($id, &$parents) {
+  function buildParentList($poster, $id, &$parents) {
     $result = $this->DATABASE->query("SELECT * FROM comments WHERE id = ".$id);
     foreach($result as $row) {
-      // should this parent be notified?
-      if($row["notify"]==1 && !in_array($row["email"], $parents)) { $parents[] = $row["email"]; }
-      // does this parent have a parent? if so, find it.
-      if($row["replyto"]!=0) { $this->buildParentList($row["replyto"], $parents); }}
+      // should this parent be notified (and is it not an "own post")?
+      if($row["notify"]==1 && $row["name"]!=$poster && !in_array($row["email"], $parents)) {
+        $parents[] = $row["email"]; }
+      // does this parent have a parent? if so, check it.
+      if($row["replyto"]!=0) { $this->buildParentList($poster, $row["replyto"], $parents); }}
   }
 
   /**
@@ -278,7 +279,7 @@ class EasyPageComments
 
           // Also send mails to all users that indicated they wanted to be notified of replies.
           $parents = array();
-          $this->buildParentList($replyto, $parents);
+          $this->buildParentList($name, $replyto, $parents);
           foreach($parents as $email) {
             $message = "A reply was posted on $loc by $name:\n" . $message_tpl;
             mail($email, $this->subject, $message, $headers_tpl);

@@ -21,17 +21,17 @@ var EasyPageComments = {
    * The reply is sent to a global function
    * 'showEasyPageComments(data)'.
    */
-  createCommentsList: function(pagename) {
+  createCommentsList: function(setname) {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
       if(this.readyState == this.DONE) {
         if(this.status == 200 && this.responseText != null) {
-          showEasyPageComments(this.responseText);
+          showEasyPageComments(setname, this.responseText);
           // see if we need to jump to an anchor
           if(EasyPageComments.followAnchor && this.responseText.indexOf(EasyPageComments.followAnchor)>-1) {
             window.location = EasyPageComments.followAnchor;
             EasyPageComments.followAnchor = false; }}}};
-    xhr.open("GET",this.EasyPageCommentLocation + "?getList="+pagename,true);
+    xhr.open("GET",this.EasyPageCommentLocation + "?getList="+setname,true);
     xhr.send(null);
   },
 
@@ -40,22 +40,22 @@ var EasyPageComments = {
    * The reply is sent to a global function
    * 'showEasyPageComments(data)'.
    */
-  createCommentForm: function(pagename) {
+  createCommentForm: function(setname) {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
       if(this.readyState == this.DONE) {
         if(this.status == 200 && this.responseText != null) {
-          showEasyPageCommentForm(this.responseText); }}};
-    xhr.open("GET",this.EasyPageCommentLocation + "?getForm="+pagename,true);
+          showEasyPageCommentForm(setname, this.responseText); }}};
+    xhr.open("GET",this.EasyPageCommentLocation + "?getForm="+setname,true);
     xhr.send(null);
   },
 
   /**
    * Visually inform the user that there are errors with their post
    */
-  notifyOfError: function(pagename) {
+  notifyOfError: function(setname) {
     var errmsg = "There are some problems with your comment that you need to fix before posting.";
-    document.querySelector("#EPC-"+pagename+" .EPC-error-message").innerHTML = errmsg;
+    document.querySelector("#EPC-"+setname+" .EPC-error-message").innerHTML = errmsg;
   },
 
   /**
@@ -95,16 +95,16 @@ var EasyPageComments = {
    * Asynchronously post a comment.
    * This calls createCommentsList upon completion.
    */
-  post: function(pagename, trusted) {
+  post: function(setname, trusted) {
     // set up form data
     var data = new FormData();
-    this.appendToFormData(data, "reply",  "#EPC-"+pagename+" .EPC-form-reply");
-    this.appendToFormData(data, "body",   "#EPC-"+pagename+" .EPC-form-comment textarea");
-    this.appendToFormData(data, "name",   "#EPC-"+pagename+" .EPC-form-name input");
-    this.appendToFormData(data, "email",  "#EPC-"+pagename+" .EPC-form-email input")
-    if(!trusted) { this.appendToFormData(data, "security","#EPC-"+pagename+" .EPC-security-answer"); }
-    data.append("page", pagename);
-    if(document.querySelector("#EPC-"+pagename+" .EPC-form-notify input").checked) { data.append("notify",true); }
+    this.appendToFormData(data, "reply",  "#EPC-"+setname+" .EPC-form-reply");
+    this.appendToFormData(data, "body",   "#EPC-"+setname+" .EPC-form-comment textarea");
+    this.appendToFormData(data, "name",   "#EPC-"+setname+" .EPC-form-name input");
+    this.appendToFormData(data, "email",  "#EPC-"+setname+" .EPC-form-email input")
+    if(!trusted) { this.appendToFormData(data, "security","#EPC-"+setname+" .EPC-security-answer"); }
+    data.append("page", setname);
+    if(document.querySelector("#EPC-"+setname+" .EPC-form-notify input").checked) { data.append("notify",true); }
 
     // post it
     var xhr = new XMLHttpRequest();
@@ -115,7 +115,7 @@ var EasyPageComments = {
           var response = document.createElement("div");
           response.innerHTML = this.responseText;
           response.style.visibility = "hidden";
-          response.id="EPC-response-"+pagename;
+          response.id="EPC-response-"+setname;
           document.body.appendChild(response);
           var status = document.querySelector("#EPC-status"),
               thread = status.name,
@@ -124,25 +124,25 @@ var EasyPageComments = {
           // this is essentially terminal.
           if(result=="ERROR") {
             alert("an error occured while posting your message. The page administrator has been notified.");
-            EasyPageComments.createCommentForm(pagename); }
+            EasyPageComments.createCommentForm(setname); }
 
           // visually inform the user about what went wrong
           else if(result=="FAILED") {
-            EasyPageComments.notifyOfError(pagename);
+            EasyPageComments.notifyOfError(setname);
             // mark each error element
             var e, end, errors = document.querySelectorAll("#"+response.id+" input");
             for(e=1, end=errors.length; e<end; e++) {
               var thing   = errors[e].name;
               var message = errors[e].value;
               var element;
-              if(thing=="body") { element = document.querySelector("#EPC-"+pagename+" textarea"); }
-              else { element = document.querySelector("#EPC-"+pagename+" input[name="+thing+"]"); }
+              if(thing=="body") { element = document.querySelector("#EPC-"+setname+" textarea"); }
+              else { element = document.querySelector("#EPC-"+setname+" input[name="+thing+"]"); }
               EasyPageComments.markError(element, message); }}
 
           // all went well. clear the form and update the comments.
           else if(result=="SUCCESS") {
-            EasyPageComments.createCommentsList(pagename);
-            EasyPageComments.createCommentForm(pagename); }
+            EasyPageComments.createCommentsList(setname);
+            EasyPageComments.createCommentForm(setname); }
 
           // and make sure to remove the response from the body again!
           document.body.removeChild(response);

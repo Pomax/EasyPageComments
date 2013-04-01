@@ -80,8 +80,8 @@ class EasyPageComments
    * which page EasyPageComments is running.
    */
   function __construct($parameters=array()) {
-    $this->thispage =& $_SERVER["PHP_SELF"];
-    $this->loc = preg_replace("/\/[^\/]+$/", "/", $_SERVER["SCRIPT_URI"]) . $this->EPC_path;
+    $this->thispage =& $_SERVER["SCRIPT_NAME"];
+    $this->loc = preg_replace("/\/[^\/]+$/", "/", $_SERVER["SCRIPT_FILENAME"]) . $this->EPC_path;
     // set values based on passed parameters (if any were passed)
     if(isset($parameters["name"]))  { $this->current_user_name  = $parameters["name"]; }
     if(isset($parameters["email"])) { $this->current_user_email = $parameters["email"]; }

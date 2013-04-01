@@ -7,6 +7,12 @@
   float: right;
 }
 
+.EPC-no-comments {
+  border: 1px solid black;
+  padding: 1em;
+  text-align: center;
+}
+
 .EPC-list a { text-decoration: none; }
 .EPC-list a:link    { color: #33F; }
 .EPC-list a:visited { color: #33F; }

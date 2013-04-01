@@ -423,6 +423,9 @@ class EasyPageComments
       if($entry==null) continue;
       if($entry["parent"]==0) {
         $html .= $this->stringwalk($entry, 0); }}
+    if(count($entrylist)==0) {
+      $html .= "<div class=\"EPC-no-comments\">No comments have been posted yet.</div>\n";
+    }
     $html .= "</div> <!-- EasyPageComments list -->\n";
 
     print $html;

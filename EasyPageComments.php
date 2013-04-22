@@ -54,6 +54,10 @@ class EasyPageComments
   // links in email notifications, so if $rss and $notify are both
   // set to "false", EPC_path will not be used, and its value is
   // irrelevant.
+  //
+  // If EPC_path starts with "http", the path will be treated
+  // as an absolute URL. This is useful when your comment script
+  // lives on a different domain from the page(s) you use it for.
   var $EPC_path = "index.html";
 
 // -----------------------------------------
@@ -81,7 +85,8 @@ class EasyPageComments
    */
   function __construct($parameters=array()) {
     $this->thispage =& $_SERVER["SCRIPT_NAME"];
-    $this->loc = preg_replace("/\/[^\/]+$/", "/", $_SERVER["SCRIPT_FILENAME"]) . $this->EPC_path;
+    if(strpos($this->EPC_path,"http")!=-1) { $this->loc = $this->EPC_path; }
+    else { $this->loc = preg_replace("/\/[^\/]+$/", "/", $_SERVER["SCRIPT_FILENAME"]) . $this->EPC_path; }
     // set values based on passed parameters (if any were passed)
     if(isset($parameters["name"]))  { $this->current_user_name  = $parameters["name"]; }
     if(isset($parameters["email"])) { $this->current_user_email = $parameters["email"]; }

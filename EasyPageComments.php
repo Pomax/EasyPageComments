@@ -391,7 +391,7 @@ class EasyPageComments
       $timestamp = date("l, F j", $t) . "<sup>" . date("S", $t) . "</sup>" . date(" Y - g:i a (", $t) . "GMT" . substr(date("P", $t),0,1) . substr(date("P", $t),2,1) . ")";
 
       $html .= "\t\t<div class=\"EPC-entry-time\"><a href=\"#$pagename-comment-$id\">$timestamp</a></div>\n";
-      $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace("\n","<br/>",$data['body']) . "</div>\n";
+      $html .= "\t\t<div class=\"EPC-entry-comment\">" . str_replace(" ", "&nbsp;", str_replace("\n","<br/>",$data['body'])) . "</div>\n";
 
       $onclick   = "document.querySelector('#EPC-$pagename input[name=reply]').value='EasyPageComment$id';";
       $onclick  .= "document.querySelector('#EPC-$pagename .EPC-comment-type').innerHTML='reply';";

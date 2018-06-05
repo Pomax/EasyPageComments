@@ -1,8 +1,17 @@
-  ================================
-          EasyPageComments
+# EasyPageComments
 
-  (c) 2011 Mike "Pomax" Kamermans
-  ================================
+(c) 2011 Mike "Pomax" Kamermans
+
+## Unmaintained
+
+This code was written in 2011 and has not been looked at
+in years. If you would like to see any work done, the
+only realistic path towards getting changes landed will
+be to write the fixes/modifications yourself, and filing
+a PR, as I will not be writing any code against this
+package myself.
+
+## Synopsis
 
 This projects aims to make the concept of quickly adding a
 comments section to pages trivial, by offering a PHP script
@@ -12,7 +21,7 @@ the content generation. An explanation can be found on:
 
   http://pomax.nihongoresources.com/pages/EasyPageComments
 
-Features:
+## Features
 
 - Drop-in install
 - Separate comments listing and comment form injection
@@ -36,13 +45,17 @@ Features:
   or illegal form fields.
 
 
-  ================================
+## License
 
+public domain, except in jurisditions where public
+domain is not recognized. In those jurisdictions,
+the code license is to be considered MIT.
 
-I'm still figuring out the precise license for this.
-Basically you're free to use it however you want, but if
-you're using it on sites in a way that allows you to make
-more money, a donation would be fair.
+## Disclaimer
 
-If you want to include it with a for-sale commercial
-product, contact me first.
+Use this code at your own risk. If it does not do
+what you expected it to do, the person responsible
+for that is you, for not analysing the code to make
+sure it would do what you would have expected it to
+do. I take no responsibility for how you use this
+code, or what expectations you have of it.

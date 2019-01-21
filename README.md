@@ -1,3 +1,9 @@
+# THIS PROJECT IS NO LONGER MAINTAINED
+
+I wrote this in 2011, for a version of PHP that no longer exists. If you're considering using this package for your PHP user management, please, *please* look for a newer, better thing first.
+
+---
+
 # EasyPageComments
 
 (c) 2011 Mike "Pomax" Kamermans
